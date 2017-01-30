@@ -1,13 +1,11 @@
 from flask import Flask, render_template, url_for, request, jsonify
 from SPARQLWrapper import SPARQLWrapper, RDF, JSON
 import requests
-import json
+import traceback
 
 
 app = Flask(__name__)
 
-
-#TUTORIAL_REPOSITORY = 'http://localhost:8080/openrdf-sesame/repositories/tutorial'
 TUTORIAL_REPOSITORY = 'http://localhost:5820/tutorial'
 
 @app.route('/')
@@ -61,14 +59,15 @@ def sparql():
             app.logger.debug(response)
 
             if return_format == 'RDF':
+                print response
                 app.logger.debug('Serializing to Turtle format')
-                return response.serialize(format='nt')
-            else :
+                return response.serialize(format='turtle')
+            else:
                 app.logger.debug('Directly returning JSON format')
                 return jsonify(response)
         except Exception as e:
             app.logger.error('Something went wrong')
-            app.logger.error(e)
+            traceback.print_exc()
             return jsonify({'result': 'Error'})
 
 
@@ -98,6 +97,11 @@ def store():
     app.logger.debug('Assuming your data is Turtle!!')
     response = requests.post(post_url, data=data, headers={'Accept': 'text/plain', 'Content-type': 'text/turtle'})
     app.logger.debug(response.status_code)
+    app.logger.debug(response.content)
+    app.logger.debug(response.headers)
+
+    if response.status_code != 200:
+        return str(response.content)
 
 
     # Close the transaction
@@ -107,7 +111,10 @@ def store():
     app.logger.debug(response.content)
     app.logger.debug(response.headers)
 
-    return str(response.status_code)
+    if response.status_code != 200:
+        return str(response.content)
+    else:
+        return "Ok!"
 
 
 if __name__ == '__main__':
